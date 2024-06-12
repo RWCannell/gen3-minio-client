@@ -15,4 +15,7 @@ MINIO_BUCKET_NAME="my-minio-bucket"
 MINIO_ENDPOINT="www.miniolocal.co.za"
 MINIO_ACCESS_KEY="minioaccesskey"
 MINIO_SECRET_KEY="miniosecretkey"
+UPLOAD_PATH="/path/to/file"
+GEN3_CREDENTIALS_PATH="/gen3-credentials.json"
+GEN3_COMMONS_URL="https://www.gen3local.co.za"
 ```
