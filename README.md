@@ -19,3 +19,42 @@ UPLOAD_PATH="/path/to/file"
 GEN3_CREDENTIALS_PATH="/gen3-credentials.json"
 GEN3_COMMONS_URL="https://www.gen3local.co.za"
 ```
+
+### Running the Application
+To run the application in a virtual environment, the following command can be used:
+```bash
+python3 -m venv venv
+```
+This path should be placed inside the `.gitignore` file so that it doesn't get committed to Github. We need to run individual Python scripts from inside the virtual environment:
+```bash
+source venv/bin/activate
+```
+The `get_minio_presigned_url.py` script can be run with:
+```bash
+python3 get_minio_presigned_url.py
+```
+
+### Attributes of MinIO Objects
+The attributes of an object from a MinIO bucket looks as follows when calling the `.__dir__()` method:
+```python
+['_bucket_name', '_object_name', '_last_modified', '_etag', '_size', '_metadata', '_version_id', '_is_latest', '_storage_class', '_owner_id', '_owner_name', '_content_type', '_is_delete_marker', '_tags', '__module__', '__doc__', '__init__', 'bucket_name', 'object_name', 'is_dir', 'last_modified', 'etag', 'size', 'metadata', 'version_id', 'is_latest', 'storage_class', 'owner_id', 'owner_name', 'is_delete_marker', 'content_type', 'tags', 'fromxml', '__dict__', '__weakref__', '__new__', '__repr__', '__hash__', '__str__', '__getattribute__', '__setattr__', '__delattr__', '__lt__', '__le__', '__eq__', '__ne__', '__gt__', '__ge__', '__reduce_ex__', '__reduce__', '__getstate__', '__subclasshook__', '__init_subclass__', '__format__', '__sizeof__', '__dir__', '__class__']
+```
+We can use these attributes for each object to generate a manifest file for the MinIO bucket. The manifest file needs to have the following five columns:   
+
+| GUID | md5 | size | acl | url |
+|------|-----|------|-----|-----|
+
+The MD5 for an object can be determined by using the following Python code snippet:
+```python
+import requests
+import sys
+import hashlib
+
+# either provide a url or a file name
+data = requests.get(url).content
+data = open("path/to/file", "rb").read()
+
+file_size = sys.getsizeof(data)
+md5sum = hashlib.md5(data).hexdigest()
+print(file_size, md5sum)
+```

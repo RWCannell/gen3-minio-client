@@ -34,84 +34,89 @@ client = Minio(
     cert_check=False,
 )
 
-def get_minio_objects(bucket: str, prefix: str) -> dict:
-    s3 = resource("s3")
-    bucket = s3.Bucket(bucket)
-    return {obj.key: obj for obj in bucket.objects.filter(Prefix=prefix)}
+# def get_minio_objects(bucket: str, prefix: str) -> dict:
+#     s3 = resource("s3")
+#     bucket = s3.Bucket(bucket)
+#     return {obj.key: obj for obj in bucket.objects.filter(Prefix=prefix)}
 
-# List objects information
-def list_minio_objects(bucket_name: str):
-    objects = client.list_objects(bucket_name)
-    for obj in objects:
-        print(obj)
+objects = client.list_objects(minio_bucket_name)
+for obj in objects:
+    # print(obj.info())
+    print(obj.object_name)
 
-# List objects information whose names starts with "my/prefix/"
-def list_minio_objects_by_prefix(bucket_name: str, prefix: str):
-    objects = client.list_objects(bucket_name, prefix="PREFIX/")
-    for obj in objects:
-        print(obj)
+# # List objects information
+# def list_minio_objects(bucket_name: str):
+#     objects = client.list_objects(bucket_name)
+#     for obj in objects:
+#         print(obj)
 
-# List objects information recursively
-def list_minio_objects_recursively(bucket_name: str):
-    objects = client.list_objects(bucket_name, recursive=True)
-    for obj in objects:
-        print(obj)
+# # List objects information whose names starts with "my/prefix/"
+# def list_minio_objects_by_prefix(bucket_name: str, prefix: str):
+#     objects = client.list_objects(bucket_name, prefix="PREFIX/")
+#     for obj in objects:
+#         print(obj)
 
-# List objects information recursively whose names starts with
-# "my/prefix/"
-def list_minio_objects_by_prefix_recursively(bucket_name: str, prefix: str):
-    objects = client.list_objects(
-        minio_bucket_name, prefix=prefix, recursive=True,
-    )
-    for obj in objects:
-        print(obj)
+# # List objects information recursively
+# def list_minio_objects_recursively(bucket_name: str):
+#     objects = client.list_objects(bucket_name, recursive=True)
+#     for obj in objects:
+#         print(obj)
 
-
-def load_old_manifest(filename: str = COMPLETED) -> dict:
-    with open(filename, "r") as f:
-        reader = DictReader(f, delimiter="\t")
-        return {row["GUID"]: row for row in reader}
-
-
-def create_manifest(filename, minio_objects: dict) -> None:
-    with open(filename, "w") as f:
-        writer = DictWriter(f, fieldnames=MANIFEST_FIELDS, delimiter="\t")
-        writer.writeheader()
-        for key, minio_object in minio_objects.items():
-            writer.writerow(minio_object)
+# # List objects information recursively whose names starts with
+# # "my/prefix/"
+# def list_minio_objects_by_prefix_recursively(bucket_name: str, prefix: str):
+#     objects = client.list_objects(
+#         minio_bucket_name, prefix=prefix, recursive=True,
+#     )
+#     for obj in objects:
+#         print(obj)
 
 
-def main():
-    auth = Gen3Auth(refresh_file=gen3_credentials)
+# def load_old_manifest(filename: str = COMPLETED) -> dict:
+#     with open(filename, "r") as f:
+#         reader = DictReader(f, delimiter="\t")
+#         return {row["GUID"]: row for row in reader}
 
-    already_uploaded = load_old_manifest()
-    print(already_uploaded)
 
-    minio_objects = get_minio_objects(bucket=minio_bucket_name, prefix="PREFIX")
-    new_manifest_dict = {}
-    for key, minio_object in minio_objects.items():
-        if key in already_uploaded:
-            continue
-        new_manifest_dict[key] = {
-            "GUID": str(uuid4()),
-            "md5": str(minio_object.e_tag).strip('"'),
-            "size": minio_object.size,
-            "acl": "[*]",
-            "url": f"https://{minio_api_endpoint}/{key}"
-        }
-    create_manifest(MANIFEST, new_manifest_dict)
+# def create_manifest(filename, minio_objects: dict) -> None:
+#     with open(filename, "w") as f:
+#         writer = DictWriter(f, fieldnames=MANIFEST_FIELDS, delimiter="\t")
+#         writer.writeheader()
+#         for key, minio_object in minio_objects.items():
+#             writer.writerow(minio_object)
 
-    # use basic auth for admin privileges in indexd
-    #auth = ("fence", "from fence secret")
 
-    indexd_manifest = index_object_manifest(
-        commons_url=gen3_commons_url,
-        manifest_file=MANIFEST,
-        thread_num=8,
-        auth=auth,
-        replace_urls=True,
-        manifest_file_delimiter="\t", # put "," if the manifest is csv file
-        submit_additional_metadata_columns=False, # set to True to submit additional metadata to the metadata service
-    )
+# def main():
+#     auth = Gen3Auth(refresh_file=gen3_credentials)
 
-    print(indexd_manifest)
+#     already_uploaded = load_old_manifest()
+#     print(already_uploaded)
+
+#     minio_objects = get_minio_objects(bucket=minio_bucket_name, prefix="PREFIX")
+#     new_manifest_dict = {}
+#     for key, minio_object in minio_objects.items():
+#         if key in already_uploaded:
+#             continue
+#         new_manifest_dict[key] = {
+#             "GUID": str(uuid4()),
+#             "md5": str(minio_object.e_tag).strip('"'),
+#             "size": minio_object.size,
+#             "acl": "[*]",
+#             "url": f"https://{minio_api_endpoint}/{key}"
+#         }
+#     create_manifest(MANIFEST, new_manifest_dict)
+
+#     # use basic auth for admin privileges in indexd
+#     #auth = ("fence", "from fence secret")
+
+#     indexd_manifest = index_object_manifest(
+#         commons_url=gen3_commons_url,
+#         manifest_file=MANIFEST,
+#         thread_num=8,
+#         auth=auth,
+#         replace_urls=True,
+#         manifest_file_delimiter="\t", # put "," if the manifest is csv file
+#         submit_additional_metadata_columns=False, # set to True to submit additional metadata to the metadata service
+#     )
+
+#     print(indexd_manifest)
