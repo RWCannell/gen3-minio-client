@@ -1,4 +1,4 @@
 .env
 venv
 output.log
-upload_data
+data

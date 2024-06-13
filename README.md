@@ -33,6 +33,10 @@ The `get_minio_presigned_url.py` script can be run with:
 ```bash
 python3 get_minio_presigned_url.py
 ```
+NOTE: After installing all the dependencies, a `requirements.txt` file can be generated with the command:
+```bash
+pip freeze > requirements.txt
+```
 
 ### Attributes of MinIO Objects
 The attributes of an object from a MinIO bucket looks as follows when calling the `.__dir__()` method:
