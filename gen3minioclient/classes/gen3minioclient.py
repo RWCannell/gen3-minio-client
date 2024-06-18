@@ -43,18 +43,18 @@ class Gen3MinioClient:
     #     self.gen3_commons_url = gen3_commons_url
         
     def __init__(self):
-        print(f"Initialising Gen3MinioClient with bucket {self.minio_bucket_name} and endpoint https://{self.minio_api_endpoint}")
+        print(f"Initialising Gen3MinioClient with bucket {self.minio_bucket_name} and endpoint https://{self.minio_api_endpoint}...")
         
     def get_minio_objects(self):
-        objects = self.client.list_objects(self.minio_bucket_name)
+        objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
         return objects
     
     def get_minio_objects_by_prefix(self, prefix: str):
-        objects = self.client.list_objects(self.minio_bucket_name, prefix=prefix)
+        objects = self.client.list_objects(self.minio_bucket_name, prefix=prefix, recursive=True)
         return objects
     
     def get_minio_object_names(self):
-        objects = self.client.list_objects(self.minio_bucket_name)
+        objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
         object_names = []
         for obj in objects:
             object_names.append(obj.object_name)
@@ -62,7 +62,7 @@ class Gen3MinioClient:
         return object_names
     
     def get_minio_object_names_by_prefix(self, prefix: str):
-        objects = self.client.list_objects(self.minio_bucket_name, prefix=prefix)
+        objects = self.client.list_objects(self.minio_bucket_name, prefix, recursive=True)
         object_names = []
         for obj in objects:
             object_names.append(obj.object_name)
@@ -80,31 +80,34 @@ class Gen3MinioClient:
             expires=timedelta(days=1),
             response_headers={"response-content-type": "application/json"},
         )
-
         return url
     
-    def get_size_of_object(file_path: str):
+    def calculate_size_of_file(self, file_path: str):
         data = open(file_path, "rb").read()
         file_size = sys.getsizeof(data)
         print(file_size)
         return file_size
     
-    def calculate_size_of_file(file_path: str):
-        data = open(file_path, "rb").read()
-        file_size = sys.getsizeof(data)
-        print(file_size)
-        return file_size
-    
-    def generate_md5_for_file(file_path: str):
+    def generate_md5_for_file(self, file_path: str):
         data = open(file_path, "rb").read()
         md5sum = hashlib.md5(data).hexdigest()
         print(md5sum)
         return md5sum
     
-    def load_minio_manifest_file(filename: str) -> dict:
+    def load_minio_manifest_file(self, filename: str) -> dict:
         with open(filename, "r") as f:
             reader = DictReader(f, delimiter="\t")
             return {row["GUID"]: row for row in reader}
+        
+    def construct_new_minio_manifest_file(self, filename):
+        objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
+        for obj in objects:
+            print(f"GUID: {str(uuid4())}")
+            print(f"md5: {str(obj.etag).strip('"')}")
+            print(f"size: {obj.size}")
+            print("acl: [*]")
+            print(f"url: https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}")
+            print("\n")
     
     def construct_minio_manifest_file(self, filename):
         objects = self.client.list_objects(self.minio_bucket_name)
@@ -149,4 +152,4 @@ class Gen3MinioClient:
         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    print(gen3_minio_client)
+    print(gen3_minio_client.construct_new_minio_manifest_file("/Users/regancannell/Documents/RWCannell/gen3-minio-client/output.log"))
