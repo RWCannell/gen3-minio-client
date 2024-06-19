@@ -1,9 +1,9 @@
 guid	file_name	md5	size	acl	urls
-8a1b3fbc-0180-4eed-a463-012f7796f7d2	Death_Be_Not_Proud_by_John_Donne.pdf	dba2fed7f9610cf0e9dc905b99ee858c	25536	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/Death_Be_Not_Proud_by_John_Donne.pdf
-6af2b9b1-9ea4-455a-8e0f-447cf987a82a	If_by_Rudyard_Kipling.pdf	1d3ef96422a3f3d0dac90ec78080e1ce	47325	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/If_by_Rudyard_Kipling.pdf
-00fd7463-fed6-4092-adad-adbfe7579ba4	Mushrooms_by_Sylvia_Plath.pdf	a53f247d3abd38abf0635cb67190f453	42283	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/Mushrooms_by_Sylvia_Plath.pdf
-4fad94dd-929b-4a0a-b291-3e163173429f	Ozymandias_of_Egypt_by_Percy_Shelley.pdf	c3b5805851e649987010c78b0847077f	451006	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/Ozymandias_of_Egypt_by_Percy_Shelley.pdf
-da0951db-5b0b-4ec4-a6f0-cb241f177ffd	PREFIX/333626e2-acc2-4f5d-95d4-8e490a38e847/aliquot.txt	405533066efa444f7dc42f41af9d609a	350	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/333626e2-acc2-4f5d-95d4-8e490a38e847/aliquot.txt
-f8ef7fb9-3820-4e95-aa39-07f1dde4f40c	PREFIX/39c5c8f6-fec4-4e33-835a-67813f2230eb/case.txt	e506b0a0ff2ec8717a78444c23328de5	250	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/39c5c8f6-fec4-4e33-835a-67813f2230eb/case.txt
-1dec607a-15f1-46cd-bbbe-3de93726803b	PREFIX/69c8b05e-de58-4908-b08d-aa686f3be580/publication.txt	a650978e0552f0affc383f0991176e17	176	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/69c8b05e-de58-4908-b08d-aa686f3be580/publication.txt
-832ac197-65ed-46a8-9ca7-36ab1ac1cdc5	hogwarts_express.jpg	7f5ebf1b42b7f0389ff02bf4106d41a7	238202	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg
+4d0ccd9c-e7bd-4bb8-8db7-320b8b05fd5d	Death_Be_Not_Proud_by_John_Donne.pdf	dba2fed7f9610cf0e9dc905b99ee858c	25536	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/Death_Be_Not_Proud_by_John_Donne.pdf']
+e48a8632-b6fb-4de0-8d46-c3d1ef1a5d9a	If_by_Rudyard_Kipling.pdf	1d3ef96422a3f3d0dac90ec78080e1ce	47325	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/If_by_Rudyard_Kipling.pdf']
+24a3e97a-ea2f-4e8b-b3d8-36fcfeacdbff	Mushrooms_by_Sylvia_Plath.pdf	a53f247d3abd38abf0635cb67190f453	42283	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/Mushrooms_by_Sylvia_Plath.pdf']
+a6d512b1-b6eb-4be3-9ae8-ffe3f2cc405e	Ozymandias_of_Egypt_by_Percy_Shelley.pdf	c3b5805851e649987010c78b0847077f	451006	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/Ozymandias_of_Egypt_by_Percy_Shelley.pdf']
+b69ccb1c-3921-4043-90ea-e0378e7b8c47	PREFIX/333626e2-acc2-4f5d-95d4-8e490a38e847/aliquot.txt	405533066efa444f7dc42f41af9d609a	350	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/333626e2-acc2-4f5d-95d4-8e490a38e847/aliquot.txt']
+0786d530-0808-4e43-92e3-f942c57bbe2a	PREFIX/39c5c8f6-fec4-4e33-835a-67813f2230eb/case.txt	e506b0a0ff2ec8717a78444c23328de5	250	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/39c5c8f6-fec4-4e33-835a-67813f2230eb/case.txt']
+13305d11-10c3-4f3d-85ee-df919620df9d	PREFIX/69c8b05e-de58-4908-b08d-aa686f3be580/publication.txt	a650978e0552f0affc383f0991176e17	176	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/69c8b05e-de58-4908-b08d-aa686f3be580/publication.txt']
+3273ca65-5fbf-41b6-acf7-d82bc398e4ef	hogwarts_express.jpg	7f5ebf1b42b7f0389ff02bf4106d41a7	238202	[*]	['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg']

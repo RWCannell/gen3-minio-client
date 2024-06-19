@@ -102,7 +102,7 @@ class Gen3MinioClient:
                 "md5": str(obj.etag).strip('"'),
                 "size": obj.size,
                 "acl": "[*]",
-                "urls": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
+                "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
             })
         with open(output_manifest_file, "w") as f:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
@@ -125,7 +125,7 @@ class Gen3MinioClient:
                 "md5": str(obj.etag).strip('"'),
                 "size": obj.size,
                 "acl": "[*]",
-                "urls": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
+                "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
             })
         with open(old_manifest_file, "a") as f:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
