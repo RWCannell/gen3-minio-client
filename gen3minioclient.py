@@ -19,7 +19,7 @@ logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 class Gen3MinioClient:
     MANIFEST = "data/manifest/output_manifest_file.tsv"
     COMPLETED = "data/manifest/output_manifest_file.tsv"
-    MANIFEST_FIELDS = ['guid', 'file_name', 'md5', 'file_size', 'acl', 'url']
+    MANIFEST_FIELDS = ['guid', 'file_name', 'md5', 'size', 'acl', 'urls']
 
     minio_bucket_name = os.getenv("MINIO_BUCKET_NAME")
     minio_api_endpoint = os.getenv("MINIO_ENDPOINT")
@@ -100,9 +100,9 @@ class Gen3MinioClient:
                 "guid": str(uuid4()),
                 "file_name": str(obj.object_name),
                 "md5": str(obj.etag).strip('"'),
-                "file_size": obj.size,
+                "size": obj.size,
                 "acl": "[*]",
-                "url": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
+                "urls": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
             })
         with open(output_manifest_file, "w") as f:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
@@ -123,9 +123,9 @@ class Gen3MinioClient:
                 "guid": str(uuid4()),
                 "file_name": str(obj.object_name),
                 "md5": str(obj.etag).strip('"'),
-                "file_size": obj.size,
+                "size": obj.size,
                 "acl": "[*]",
-                "url": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
+                "urls": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
             })
         with open(old_manifest_file, "a") as f:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
