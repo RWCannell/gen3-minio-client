@@ -1,4 +1,4 @@
-guid	file_name	md5	file_size	acl	url
+guid	file_name	md5	size	acl	urls
 8a1b3fbc-0180-4eed-a463-012f7796f7d2	Death_Be_Not_Proud_by_John_Donne.pdf	dba2fed7f9610cf0e9dc905b99ee858c	25536	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/Death_Be_Not_Proud_by_John_Donne.pdf
 6af2b9b1-9ea4-455a-8e0f-447cf987a82a	If_by_Rudyard_Kipling.pdf	1d3ef96422a3f3d0dac90ec78080e1ce	47325	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/If_by_Rudyard_Kipling.pdf
 00fd7463-fed6-4092-adad-adbfe7579ba4	Mushrooms_by_Sylvia_Plath.pdf	a53f247d3abd38abf0635cb67190f453	42283	[*]	https://cloud05.core.wits.ac.za/gen3-minio-bucket/Mushrooms_by_Sylvia_Plath.pdf

@@ -17,9 +17,9 @@ logging.basicConfig(filename="output.log", level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 class Gen3MinioClient:
-    MANIFEST = "./manifest.tsv"
-    COMPLETED = "./completed.tsv"
-    MANIFEST_FIELDS = ['GUID', 'md5', 'size', 'acl', 'url']
+    MANIFEST = "data/manifest/output_manifest_file.tsv"
+    COMPLETED = "data/manifest/output_manifest_file.tsv"
+    MANIFEST_FIELDS = ['guid', 'file_name', 'md5', 'file_size', 'acl', 'url']
 
     minio_bucket_name = os.getenv("MINIO_BUCKET_NAME")
     minio_api_endpoint = os.getenv("MINIO_ENDPOINT")
@@ -87,19 +87,20 @@ class Gen3MinioClient:
         print(md5sum)
         return md5sum
     
-    def load_minio_manifest_file(self, filename: str) -> dict:
-        with open(filename, "r") as f:
+    def load_minio_manifest_file(self, manifest_file: str) -> dict:
+        with open(manifest_file, "r") as f:
             reader = DictReader(f, delimiter="\t")
-            return {row["GUID"]: row for row in reader}
+            return [row for row in reader]
         
-    def construct_new_minio_manifest_file(self, output_manifest_file: str):
+    def create_minio_manifest_file(self, output_manifest_file: str):
         objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
         minio_objects = []
         for obj in objects:
             minio_objects.append({
-                "GUID": str(uuid4()),
+                "guid": str(uuid4()),
+                "file_name": str(obj.object_name),
                 "md5": str(obj.etag).strip('"'),
-                "size": obj.size,
+                "file_size": obj.size,
                 "acl": "[*]",
                 "url": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
             })
@@ -109,39 +110,34 @@ class Gen3MinioClient:
             for minio_object in minio_objects:
                 writer.writerow(minio_object)
         return minio_objects
-    
-    def construct_minio_manifest_file(self, filename):
-        objects = self.client.list_objects(self.minio_bucket_name)
-        
-        with open(filename, "w") as f:
-            writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
-            writer.writeheader()
-            for key, minio_object in objects.items():
-                writer.writerow(minio_object)
 
-    def create_minio_manifest_file(self):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
-
-        already_uploaded = self.load_minio_manifest_file(self.COMPLETED)
-        print(already_uploaded)
-
-        minio_objects = self.get_minio_objects_by_prefix(prefix="PREFIX")
-        new_manifest_dict = {}
-        for key, minio_object in minio_objects.items():
-            if key in already_uploaded:
-                continue
-            new_manifest_dict[key] = {
-                "GUID": str(uuid4()),
-                "md5": str(minio_object.e_tag).strip('"'),
-                "size": minio_object.size,
+    def update_minio_manifest_file(self, old_manifest_file: str):
+        objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
+        updated_minio_objects = []
+        existing_minio_objects = self.load_minio_manifest_file(old_manifest_file)
+        existing_minio_objects_md5sum_values = [object["md5"] for object in existing_minio_objects]
+        for obj in objects:
+            if str(obj.etag).strip('"') in existing_minio_objects_md5sum_values:
+                continue            
+            updated_minio_objects.append({
+                "guid": str(uuid4()),
+                "file_name": str(obj.object_name),
+                "md5": str(obj.etag).strip('"'),
+                "file_size": obj.size,
                 "acl": "[*]",
-                "url": f"https://{self.minio_api_endpoint}/{key}"
-            }
-        self.construct_minio_manifest_file(self.MANIFEST, new_manifest_dict)
-
+                "url": f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}",
+            })
+        with open(old_manifest_file, "a") as f:
+            writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
+            for minio_object in updated_minio_objects:
+                writer.writerow(minio_object)
+        
+    def create_indexd_manifest(self, manifest_file: str):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        self.update_minio_manifest_file(manifest_file)
         indexd_manifest = index_object_manifest(
             commons_url=self.gen3_commons_url,
-            manifest_file=self.MANIFEST,
+            manifest_file=manifest_file,
             thread_num=8,
             auth=auth,
             replace_urls=True,
@@ -153,4 +149,4 @@ class Gen3MinioClient:
         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    print(gen3_minio_client.construct_new_minio_manifest_file("data/manifest/output_manifest_file.tsv"))
+    print(gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv"))
