@@ -15,6 +15,7 @@ from gen3.auth import Gen3Auth, get_access_token_with_client_credentials, get_ac
 from gen3.tools.indexing.index_manifest import index_object_manifest
 from gen3.index import Gen3Index
 from gen3.file import Gen3File
+from gen3.submission import Gen3Submission
 
 logging.basicConfig(filename="output.log", level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -151,6 +152,16 @@ class Gen3MinioClient:
 
         print(indexd_manifest)
         
+    def submit_sheepdog_record(self, program, project, sheepdog_record):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        gen3_submission = Gen3Submission(endpoint=self.gen3_commons_url, auth_provider=auth)
+        return gen3_submission.submit_record(program, project, sheepdog_record)
+    
+    def get_all_records(self):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        gen3_index = Gen3Index(auth)
+        return gen3_index.get_all_records()
+        
     def create_blank_record(self, uploader, file_name):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
         index = Gen3Index(auth)
@@ -170,7 +181,6 @@ class Gen3MinioClient:
         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    # gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
-    # print(gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv"))
-    gen3_presigned_url = gen3_minio_client.get_gen3_presigned_url(guid="4d0ccd9c-e7bd-4bb8-8db7-320b8b05fd5d")
-    print(gen3_presigned_url)
+    gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
+    print(gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv"))
+
