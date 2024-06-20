@@ -10,8 +10,9 @@ from uuid import uuid4
 from minio import Minio
 from dotenv import load_dotenv
 from boto3 import client, resource
-from gen3.auth import Gen3Auth
+from gen3.auth import Gen3Auth, get_access_token_with_client_credentials
 from gen3.tools.indexing.index_manifest import index_object_manifest
+from gen3.index import Gen3Index
 
 logging.basicConfig(filename="output.log", level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -147,6 +148,21 @@ class Gen3MinioClient:
 
         print(indexd_manifest)
         
+    def create_blank_record(self, uploader, file_name):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        print(self.gen3_credentials)
+        index = Gen3Index(auth)
+        index_response = index.create_blank(uploader=uploader, file_name=file_name)
+        return index_response
+    
+    def test_url(self, url):
+        x = requests.get(url, verify = False)
+        print(x)
+        
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
+    # blank_record_response = gen3_minio_client.create_blank_record("regancannell@wits.ac.za", "NZ_GG704939.fa")
+    # print(blank_record_response)
+    gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
     print(gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv"))
+    # test = gen3_minio_client.test_url("https://cloud08.core.wits.ac.za")

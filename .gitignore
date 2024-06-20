@@ -1,4 +1,6 @@
 .env
+.DS_Store
 venv
 output.log
 data/uploads/
+certs/
