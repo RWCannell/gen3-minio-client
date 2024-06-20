@@ -4,3 +4,4 @@ venv
 output.log
 data/uploads/
 certs/
+gen3-credentials.json

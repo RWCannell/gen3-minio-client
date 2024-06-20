@@ -3,6 +3,7 @@ import os
 import requests
 import sys
 import hashlib
+import json
 
 from csv import  DictReader, DictWriter
 from datetime import timedelta
@@ -10,9 +11,10 @@ from uuid import uuid4
 from minio import Minio
 from dotenv import load_dotenv
 from boto3 import client, resource
-from gen3.auth import Gen3Auth, get_access_token_with_client_credentials
+from gen3.auth import Gen3Auth, get_access_token_with_client_credentials, get_access_token_with_key
 from gen3.tools.indexing.index_manifest import index_object_manifest
 from gen3.index import Gen3Index
+from gen3.file import Gen3File
 
 logging.basicConfig(filename="output.log", level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -28,6 +30,7 @@ class Gen3MinioClient:
     minio_secret_key = os.getenv("MINIO_SECRET_KEY")
     gen3_commons_url = os.getenv("GEN3_COMMONS_URL")
     gen3_credentials = os.getenv("GEN3_CREDENTIALS_PATH")
+    manifest_file_location = os.getenv("MANIFEST_FILE_LOCATION")
     
     client = Minio(
         endpoint=minio_api_endpoint,
@@ -150,10 +153,16 @@ class Gen3MinioClient:
         
     def create_blank_record(self, uploader, file_name):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        print(self.gen3_credentials)
         index = Gen3Index(auth)
         index_response = index.create_blank(uploader=uploader, file_name=file_name)
         return index_response
+        # return auth
+    
+    def get_gen3_presigned_url(self, guid):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        gen3_file = Gen3File(endpoint=self.gen3_commons_url, auth_provider=auth)
+        gen3_presigned_url = gen3_file.get_presigned_url(guid)
+        return gen3_presigned_url
     
     def test_url(self, url):
         x = requests.get(url, verify = False)
@@ -161,8 +170,7 @@ class Gen3MinioClient:
         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    # blank_record_response = gen3_minio_client.create_blank_record("regancannell@wits.ac.za", "NZ_GG704939.fa")
-    # print(blank_record_response)
-    gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
-    print(gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv"))
-    # test = gen3_minio_client.test_url("https://cloud08.core.wits.ac.za")
+    # gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
+    # print(gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv"))
+    gen3_presigned_url = gen3_minio_client.get_gen3_presigned_url(guid="4d0ccd9c-e7bd-4bb8-8db7-320b8b05fd5d")
+    print(gen3_presigned_url)
