@@ -48,7 +48,6 @@ class Gen3MinioClient:
     def get_minio_objects(self):
         objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
         minio_objects = []
-        print(self.gen3_username)
         for obj in objects:
             object_name = obj.object_name
             did = str(uuid4())
@@ -208,12 +207,32 @@ class Gen3MinioClient:
         gen3_index = Gen3Index(auth)
         return gen3_index.delete_record(guid)
         
-    def create_blank_record(self, uploader, file_name):
+    def create_blank_record_for_minio_object(self, minio_object):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
         index = Gen3Index(auth)
-        index_response = index.create_blank(uploader=uploader, file_name=file_name)
-        return index_response
-        # return auth
+        index.create_blank(uploader=minio_object["uploader"], file_name=minio_object["file_name"])
+        
+    def update_blank_record_for_minio_object(self, minio_object):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        index = Gen3Index(auth)
+        index.update_blank(
+            guid=minio_object["guid"], 
+            rev="1", 
+            hashes={'md5': minio_object["md5"]}, 
+            size=minio_object["size"], 
+            urls=minio_object["urls"], 
+            authz=None
+        )
+        
+    def create_index_for_minio_object(self):
+        minio_objects = self.get_minio_objects()
+        for minio_object in minio_objects:
+            print("Creating blank record for object '" + minio_object["file_name"] + "'")
+            self.create_blank_record_for_minio_object(minio_object)
+            
+            print("Updating record for object '" + minio_object["file_name"] + "'")
+            self.update_blank_record_for_minio_object(minio_object)
+        
     
     def update_existing_record(self, guid: str):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
@@ -232,5 +251,7 @@ class Gen3MinioClient:
         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    gen3_minio_client.delete_record_by_guid("6142d28f-87ac-4f56-b0cf-cca93638e1dc")
+    print(gen3_minio_client.create_blank_record_for_minio_object(
+        {'guid': 'aaff78d3-7440-4f23-849d-c0cdac1523ae', 'did': 'f32d3a0c-da4c-41da-b411-078f879e975e', 'file_name': 'hogwarts_express.jpg', 'md5': '7f5ebf1b42b7f0389ff02bf4106d41a7', 'size': 238202, 'acl': '[*]', 'urls': ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg'], 'uploader': 'a0045661@wits.ac.za'}
+    ))
     # gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
