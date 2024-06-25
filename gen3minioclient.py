@@ -24,7 +24,7 @@ logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 class Gen3MinioClient:
     MANIFEST = "data/manifest/output_manifest_file.tsv"
     COMPLETED = "data/manifest/output_manifest_file.tsv"
-    MANIFEST_FIELDS = ['guid', 'did', 'file_name', 'md5', 'size', 'acl', 'urls', 'uploader']
+    MANIFEST_FIELDS = ['guid', 'file_name', 'md5', 'size', 'acl', 'urls']
 
     minio_bucket_name = os.getenv("MINIO_BUCKET_NAME")
     minio_api_endpoint = os.getenv("MINIO_ENDPOINT")
@@ -50,43 +50,38 @@ class Gen3MinioClient:
         minio_objects = []
         for obj in objects:
             object_name = obj.object_name
-            did = str(uuid4())
+            guid = str(uuid4())
             index = object_name.rfind('/')
             if (index != -1):
-                did = object_name[0:object_name.rfind("/") ]
                 object_name = object_name[index+1:]
             minio_object = {
-                "guid": str(uuid4()),
-                "did": did,
+                "guid": guid,
                 "file_name": object_name,
                 "md5": str(obj.etag).strip('"'),
                 "size": obj.size,
                 "acl": "[*]",
                 "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
-                "uploader": self.gen3_username
             }
             minio_objects.append(minio_object)
         return minio_objects
-    
+
     def get_minio_objects_by_prefix(self, prefix: str):
         objects = self.client.list_objects(self.minio_bucket_name, prefix=prefix, recursive=True)
         minio_objects = []
         for obj in objects:
             object_name = obj.object_name
-            did = str(uuid4())
+            # did = str(uuid4())
             last_index = object_name.rfind('/')
             if (last_index != -1):
-                did = object_name[ object_name.find("/")+1 : object_name.rfind("/") ]
+                # did = object_name[ object_name.find("/")+1 : object_name.rfind("/") ]
                 object_name = object_name[last_index+1:]
             minio_object = {
                 "guid": str(uuid4()),
-                "did": did,
                 "file_name": object_name,
                 "md5": str(obj.etag).strip('"'),
                 "size": obj.size,
                 "acl": "[*]",
                 "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
-                "uploader": self.gen3_username
             }
             minio_objects.append(minio_object)
         return minio_objects
@@ -140,35 +135,6 @@ class Gen3MinioClient:
         print(md5sum)
         return md5sum
     
-    def upload_file_to_minio_bucket(self, prefix: str, object_name: str, file_path: str):
-        # Generate prefix and GUID
-        did = str(uuid4())
-        directory_name_in_bucket = prefix + "/" + did
-        minio_object = {
-            "guid": str(uuid4()),
-            "did": did,
-            "file_name": object_name,
-            "md5": str(self.generate_md5_for_file(file_path)).strip('"'),
-            "size": self.calculate_size_of_file(file_path),
-            "acl": "[*]",
-            "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{directory_name_in_bucket}/{object_name}"],
-            "uploader": self.gen3_username
-        }
-   
-        path = os.path.join(directory_name_in_bucket, object_name)
-        print(path)
-        
-        # Upload data
-        result = self.client.fput_object(
-            self.minio_bucket_name, path, file_path,
-        )
-        # print(minio_object)
-        print(
-            "Created {0} object; etag: {1}, version-id: {2}".format(
-                result.object_name, result.etag, result.version_id,
-            ),
-        )
-    
     def load_minio_manifest_file(self, manifest_file: str) -> dict:
         with open(manifest_file, "r") as f:
             reader = DictReader(f, delimiter="\t")
@@ -193,18 +159,50 @@ class Gen3MinioClient:
                 continue            
             updated_minio_objects.append({
                 "guid": obj["guid"],
-                "did": obj["did"],
+                # "did": obj["did"],
                 "file_name": obj["file_name"],
                 "md5": obj["md5"],
                 "size": obj["size"],
                 "acl": "[*]",
-                "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj["file_name"]}"],
-                "uploader": self.gen3_username,
+                "urls": obj["urls"],
+                # "uploader": self.gen3_username,
             })
         with open(old_manifest_file, "a") as f:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
             for minio_object in updated_minio_objects:
                 writer.writerow(minio_object)
+                
+    def upload_file_to_minio_bucket(self, prefix: str, object_name: str, file_path: str, old_manifest_file: str):
+        # Generate prefix and GUID
+        did = str(uuid4())
+        size_of_file = self.calculate_size_of_file(file_path)
+        directory_name_in_bucket = prefix + "/" + did
+   
+        path = os.path.join(directory_name_in_bucket, object_name)
+        
+        # Upload data
+        result = self.client.fput_object(
+            self.minio_bucket_name, path, file_path,
+        )
+        
+        print(
+            "Created {0} object; etag: {1}, version-id: {2}".format(
+                result.object_name, result.etag, result.version_id,
+            ),
+        )
+        
+        minio_object = {
+            "guid": str(uuid4()),
+            "file_name": object_name,
+            "md5": str(result.etag,).strip('"'),
+            "size": size_of_file,
+            "acl": "[*]",
+            "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{directory_name_in_bucket}/{object_name}"],
+        }
+        print(f"{minio_object} has been uploaded")
+        
+        print("Updating manifest with metadata about newly uploaded minio object...")
+        self.update_minio_manifest_file(old_manifest_file)
         
     def create_indexd_manifest(self, manifest_file: str):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
@@ -283,5 +281,5 @@ if __name__ == '__main__':
     # print(gen3_minio_client.create_blank_record_for_minio_object(
     #     {'guid': 'aaff78d3-7440-4f23-849d-c0cdac1523ae', 'did': 'f32d3a0c-da4c-41da-b411-078f879e975e', 'file_name': 'hogwarts_express.jpg', 'md5': '7f5ebf1b42b7f0389ff02bf4106d41a7', 'size': 238202, 'acl': '[*]', 'urls': ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg'], 'uploader': 'a0045661@wits.ac.za'}
     # ))
-    # gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
-    gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "Essential_Microbiology.pdf", "data/uploads/Essential_Microbiology.pdf")
+    # gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
+    gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "20-Industrial-Rev.pdf", "data/uploads/20-Industrial-Rev.pdf", "data/manifest/output_manifest_file.tsv")
