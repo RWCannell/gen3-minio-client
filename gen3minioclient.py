@@ -260,25 +260,24 @@ class Gen3MinioClient:
         index = Gen3Index(auth)
         index.create_blank(uploader=self.gen3_username, file_name=file_name)
         
-        def create_blank_index(self, uploader, file_name):
-            url = f"{self.gen3_commons_url}/index/index/blank"
-            data = {
-            "uploader": uploader,
-            "file_name": file_name
-            }
-            headers = {
-                "accept: application/json"
-                "Content-Type: application/json"
-                # "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlbmNlX2tleV9rZXkiLCJ0eXAiOiJKV1QifQ.eyJwdXIiOiJhY2Nlc3MiLCJpc3MiOiJodHRwczovL2Nsb3VkMDguY29yZS53aXRzLmFjLnphL3VzZXIiLCJhdWQiOlsiaHR0cHM6Ly9jbG91ZDA4LmNvcmUud2l0cy5hYy56YS91c2VyIiwidXNlciIsImFkbWluIiwiZ29vZ2xlX2NyZWRlbnRpYWxzIiwiZ29vZ2xlX2xpbmsiLCJnb29nbGVfc2VydmljZV9hY2NvdW50IiwiZmVuY2UiLCJvcGVuaWQiLCJnYTRnaF9wYXNzcG9ydF92MSIsImRhdGEiXSwiaWF0IjoxNzE5MzIxMDc0LCJleHAiOjE3MTkzMjQ2NzQsImp0aSI6ImUwYWJiYzlhLWZmNjYtNDc0ZS1hYjNmLWQ3YmM2Y2JjODFkZCIsInNjb3BlIjpbInVzZXIiLCJhZG1pbiIsImdvb2dsZV9jcmVkZW50aWFscyIsImdvb2dsZV9saW5rIiwiZ29vZ2xlX3NlcnZpY2VfYWNjb3VudCIsImZlbmNlIiwib3BlbmlkIiwiZ2E0Z2hfcGFzc3BvcnRfdjEiLCJkYXRhIl0sImNvbnRleHQiOnsidXNlciI6eyJuYW1lIjoiYTAwNDU2NjFAd2l0cy5hYy56YSIsImlzX2FkbWluIjpmYWxzZSwiZ29vZ2xlIjp7InByb3h5X2dyb3VwIjpudWxsfX19LCJhenAiOiIiLCJzdWIiOiIxIn0.Mm8jri0sq8RUB9b2NlQ98ZXVhFTklHAzvtEJaD6cU8s9p0pNvyjs2fhHFNoPwFEbzZrrpgRxy7Vmv7ob4IAipk908SHsZxaUCzL4VPJOWHkL2dxo-bTr4Lv4UIc9F3EhyfjUZ_ZG6jCXEmqQtzSKDn1giNW0XQxwbitpc3ARL8aathBUjZ_k-ILnSBn1Wi7pjyZ1f6-tI4i1u4PA9zyjDa2md8UCKo6UDyVlZGk5_lW6865xj40_KAS9KLBcLNCHMrCeasEfiU1g_ArARaus9P-pIpscRZgqjwvkYW7ExmmCDrc7_civGj9Ak4bPn6QPClpxnKXaF0tERXpi64hS_beF3KMYJn8PYIyu0no187D_O0z9fVjc8vJEZXLNN0vvwnomSqtAeN1adXrnYNyUwIaY9PSaXdBFeB_7Cax_wCMdFXDY14UDAgimWxg1ls7lzm8K06-tM2YabUhrZELV0pPRNSXdAOacneYM2wZhKlrD9uZu4BUizq7nVy1GuVRZFLmT341vBHh0HZDndpIBVeuYiwRSPW5m4my_PlgDVTprFEUZzR9vo65kgNdz9cJsyzAvnX4hr5hv36BZh7pkp-7dUMHC6H-Kn5w_NVm5wrCFMj62-vTx0JcEU7G2hCZXRWDIG-HWyO85FiAfx16kDMg8wEVHP96clhcRMqhyaN8"
-            }
-            response = requests.post(
-                url,
-                data=data,
-                headers=headers
-            )
-            
-            print(response)
-            # response = requests.put("{self.}/index/index/blank/20ebd953-72ee-43c7-88b1-b5ce154cb9b5", data=payload, headers=headers)
+    def create_blank_index(self, uploader, file_name):
+        url = f"{self.gen3_commons_url}/index/index/blank"
+        data = {
+        "uploader": uploader,
+        "file_name": file_name
+        }
+        access_token = self.get_gen3_commons_access_token()
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        response = requests.post(
+            url,
+            data=data,
+            headers=headers,
+            verify=False,
+        )
+        
+        print(response)
         
     def update_blank_index(self, minio_object):
         url = f"{self.gen3_commons_url}/index/index/blank/{minio_object["guid"]}"
@@ -290,19 +289,18 @@ class Gen3MinioClient:
         "urls": minio_object["urls"],
         "authz": minio_object["acl"]
         }
+        access_token = self.get_gen3_commons_access_token()
         headers = {
-            "accept: application/json"
-            "Content-Type: application/json"
-            # "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlbmNlX2tleV9rZXkiLCJ0eXAiOiJKV1QifQ.eyJwdXIiOiJhY2Nlc3MiLCJpc3MiOiJodHRwczovL2Nsb3VkMDguY29yZS53aXRzLmFjLnphL3VzZXIiLCJhdWQiOlsiaHR0cHM6Ly9jbG91ZDA4LmNvcmUud2l0cy5hYy56YS91c2VyIiwidXNlciIsImFkbWluIiwiZ29vZ2xlX2NyZWRlbnRpYWxzIiwiZ29vZ2xlX2xpbmsiLCJnb29nbGVfc2VydmljZV9hY2NvdW50IiwiZmVuY2UiLCJvcGVuaWQiLCJnYTRnaF9wYXNzcG9ydF92MSIsImRhdGEiXSwiaWF0IjoxNzE5MzIxMDc0LCJleHAiOjE3MTkzMjQ2NzQsImp0aSI6ImUwYWJiYzlhLWZmNjYtNDc0ZS1hYjNmLWQ3YmM2Y2JjODFkZCIsInNjb3BlIjpbInVzZXIiLCJhZG1pbiIsImdvb2dsZV9jcmVkZW50aWFscyIsImdvb2dsZV9saW5rIiwiZ29vZ2xlX3NlcnZpY2VfYWNjb3VudCIsImZlbmNlIiwib3BlbmlkIiwiZ2E0Z2hfcGFzc3BvcnRfdjEiLCJkYXRhIl0sImNvbnRleHQiOnsidXNlciI6eyJuYW1lIjoiYTAwNDU2NjFAd2l0cy5hYy56YSIsImlzX2FkbWluIjpmYWxzZSwiZ29vZ2xlIjp7InByb3h5X2dyb3VwIjpudWxsfX19LCJhenAiOiIiLCJzdWIiOiIxIn0.Mm8jri0sq8RUB9b2NlQ98ZXVhFTklHAzvtEJaD6cU8s9p0pNvyjs2fhHFNoPwFEbzZrrpgRxy7Vmv7ob4IAipk908SHsZxaUCzL4VPJOWHkL2dxo-bTr4Lv4UIc9F3EhyfjUZ_ZG6jCXEmqQtzSKDn1giNW0XQxwbitpc3ARL8aathBUjZ_k-ILnSBn1Wi7pjyZ1f6-tI4i1u4PA9zyjDa2md8UCKo6UDyVlZGk5_lW6865xj40_KAS9KLBcLNCHMrCeasEfiU1g_ArARaus9P-pIpscRZgqjwvkYW7ExmmCDrc7_civGj9Ak4bPn6QPClpxnKXaF0tERXpi64hS_beF3KMYJn8PYIyu0no187D_O0z9fVjc8vJEZXLNN0vvwnomSqtAeN1adXrnYNyUwIaY9PSaXdBFeB_7Cax_wCMdFXDY14UDAgimWxg1ls7lzm8K06-tM2YabUhrZELV0pPRNSXdAOacneYM2wZhKlrD9uZu4BUizq7nVy1GuVRZFLmT341vBHh0HZDndpIBVeuYiwRSPW5m4my_PlgDVTprFEUZzR9vo65kgNdz9cJsyzAvnX4hr5hv36BZh7pkp-7dUMHC6H-Kn5w_NVm5wrCFMj62-vTx0JcEU7G2hCZXRWDIG-HWyO85FiAfx16kDMg8wEVHP96clhcRMqhyaN8"
+            "Authorization": f"Bearer {access_token}"
         }
         response = requests.put(
             url,
             data=data,
-            headers=headers
+            headers=headers,
+            verify=False,
         )
         
         print(response)
-        # response = requests.put("{self.}/index/index/blank/20ebd953-72ee-43c7-88b1-b5ce154cb9b5", data=payload, headers=headers)
 
         
     def update_blank_record_for_minio_object(self, minio_object):
@@ -351,13 +349,14 @@ if __name__ == '__main__':
     # # gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
     # # gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "Essential_Microbiology.pdf", "data/uploads/Essential_Microbiology.pdf", "data/manifest/output_manifest_file.tsv")
 
-    # minio_object = {
-    #     "guid": "5da13668-ceb2-4865-b019-ccb9eecda165",
-    #     "file_name": "Essential_Microbiology.pdf",
-    #     "md5": "62cd91d8da7f9e8343251a73d53fe419-2",
-    #     "size": 9859207,
-    #     "acl": "[*]",
-    #     "urls": ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/ce72c4e0-3083-44e3-ba1b-cee80775fa98/Essential_Microbiology.pdf'],
-    # }
-    # gen3_minio_client.update_blank_index(minio_object)
-    gen3_minio_client.get_gen3_commons_access_token()
+    minio_object = {
+        "guid": "5da13668-ceb2-4865-b019-ccb9eecda165",
+        "file_name": "Essential_Microbiology.pdf",
+        "md5": "62cd91d8da7f9e8343251a73d53fe419-2",
+        "size": 9859207,
+        "acl": "[*]",
+        "urls": ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/ce72c4e0-3083-44e3-ba1b-cee80775fa98/Essential_Microbiology.pdf'],
+    }
+    gen3_minio_client.update_blank_index(minio_object)
+    # gen3_minio_client.get_gen3_commons_access_token()
+    # gen3_minio_client.create_blank_index("a0045661@wits.ac.za", "Essential_Microbiology.pdf")
