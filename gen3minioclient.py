@@ -1,6 +1,7 @@
 import logging
 import os
 import requests
+from requests.auth import HTTPBasicAuth
 import sys
 import hashlib
 import json
@@ -260,14 +261,17 @@ class Gen3MinioClient:
         index = Gen3Index(auth)
         index.create_blank(uploader=self.gen3_username, file_name=file_name)
         
-    def create_blank_index(self, uploader, file_name):
+    def json_dumps(self, data):
+        return json.dumps({k: v for (k, v) in data.items() if v is not None})
+        
+    def create_blank_index(self, file_name):
         url = f"{self.gen3_commons_url}/index/index/blank"
-        data = {
-        "uploader": uploader,
-        "file_name": file_name
-        }
+        json = {"uploader": self.gen3_username, "file_name": file_name}
+        data = self.json_dumps(json)
         access_token = self.get_gen3_commons_access_token()
+        print(f"Access token: {access_token}")
         headers = {
+            "content-type": "application/json",
             "Authorization": f"Bearer {access_token}"
         }
         response = requests.post(
@@ -277,11 +281,11 @@ class Gen3MinioClient:
             verify=False,
         )
         
-        print(response)
+        print(response.text)
         
     def update_blank_index(self, minio_object):
         url = f"{self.gen3_commons_url}/index/index/blank/{minio_object["guid"]}"
-        data = {
+        json = {
         "size": minio_object["size"],
         "hashes": {
             "md5": minio_object["md5"],
@@ -289,8 +293,10 @@ class Gen3MinioClient:
         "urls": minio_object["urls"],
         "authz": minio_object["acl"]
         }
+        data = self.json_dumps(json)
         access_token = self.get_gen3_commons_access_token()
         headers = {
+            "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}"
         }
         response = requests.put(
@@ -357,6 +363,7 @@ if __name__ == '__main__':
         "acl": "[*]",
         "urls": ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/ce72c4e0-3083-44e3-ba1b-cee80775fa98/Essential_Microbiology.pdf'],
     }
-    gen3_minio_client.update_blank_index(minio_object)
+    # gen3_minio_client.update_blank_index(minio_object)
     # gen3_minio_client.get_gen3_commons_access_token()
-    # gen3_minio_client.create_blank_index("a0045661@wits.ac.za", "Essential_Microbiology.pdf")
+    gen3_minio_client.create_blank_index("20-Industrial-Rev.pdf")
+    
