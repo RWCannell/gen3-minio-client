@@ -45,6 +45,29 @@ class Gen3MinioClient:
     def __init__(self):
         print(f"Initialising Gen3MinioClient with bucket {self.minio_bucket_name} and endpoint https://{self.minio_api_endpoint} for uploader {self.gen3_username}...")
         
+    def get_gen3_commons_access_token(self):
+        url = f"{self.gen3_commons_url}/user/credentials/cdis/access_token"
+        
+        # opening JSON file containing Api Key
+        f = open(self.gen3_credentials)
+
+        # returns JSON object as 
+        # a dictionary
+        creds = json.load(f)
+        data = {
+            "api_key": creds["api_key"],
+            "key_id": creds["key_id"]
+        }
+        response = requests.post(
+            url,
+            data=data,
+            verify=False
+        )
+        response_json = json.loads(response.content)
+        access_token = response_json["access_token"]
+        print("Fetching access token...")
+        return access_token
+        
     def get_minio_objects(self):
         objects = self.client.list_objects(self.minio_bucket_name, recursive=True)
         minio_objects = []
@@ -159,13 +182,11 @@ class Gen3MinioClient:
                 continue            
             updated_minio_objects.append({
                 "guid": obj["guid"],
-                # "did": obj["did"],
                 "file_name": obj["file_name"],
                 "md5": obj["md5"],
                 "size": obj["size"],
                 "acl": "[*]",
                 "urls": obj["urls"],
-                # "uploader": self.gen3_username,
             })
         with open(old_manifest_file, "a") as f:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
@@ -174,9 +195,9 @@ class Gen3MinioClient:
                 
     def upload_file_to_minio_bucket(self, prefix: str, object_name: str, file_path: str, old_manifest_file: str):
         # Generate prefix and GUID
-        did = str(uuid4())
         size_of_file = self.calculate_size_of_file(file_path)
-        directory_name_in_bucket = prefix + "/" + did
+        guid = str(uuid4())
+        directory_name_in_bucket = prefix + "/" + guid
    
         path = os.path.join(directory_name_in_bucket, object_name)
         
@@ -192,7 +213,7 @@ class Gen3MinioClient:
         )
         
         minio_object = {
-            "guid": str(uuid4()),
+            "guid": guid,
             "file_name": object_name,
             "md5": str(result.etag,).strip('"'),
             "size": size_of_file,
@@ -234,10 +255,55 @@ class Gen3MinioClient:
         gen3_index = Gen3Index(auth)
         return gen3_index.delete_record(guid)
         
-    def create_blank_record_for_minio_object(self, minio_object):
+    def create_blank_record_for_minio_object(self, file_name: str):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
         index = Gen3Index(auth)
-        index.create_blank(uploader=minio_object["uploader"], file_name=minio_object["file_name"])
+        index.create_blank(uploader=self.gen3_username, file_name=file_name)
+        
+        def create_blank_index(self, uploader, file_name):
+            url = f"{self.gen3_commons_url}/index/index/blank"
+            data = {
+            "uploader": uploader,
+            "file_name": file_name
+            }
+            headers = {
+                "accept: application/json"
+                "Content-Type: application/json"
+                # "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlbmNlX2tleV9rZXkiLCJ0eXAiOiJKV1QifQ.eyJwdXIiOiJhY2Nlc3MiLCJpc3MiOiJodHRwczovL2Nsb3VkMDguY29yZS53aXRzLmFjLnphL3VzZXIiLCJhdWQiOlsiaHR0cHM6Ly9jbG91ZDA4LmNvcmUud2l0cy5hYy56YS91c2VyIiwidXNlciIsImFkbWluIiwiZ29vZ2xlX2NyZWRlbnRpYWxzIiwiZ29vZ2xlX2xpbmsiLCJnb29nbGVfc2VydmljZV9hY2NvdW50IiwiZmVuY2UiLCJvcGVuaWQiLCJnYTRnaF9wYXNzcG9ydF92MSIsImRhdGEiXSwiaWF0IjoxNzE5MzIxMDc0LCJleHAiOjE3MTkzMjQ2NzQsImp0aSI6ImUwYWJiYzlhLWZmNjYtNDc0ZS1hYjNmLWQ3YmM2Y2JjODFkZCIsInNjb3BlIjpbInVzZXIiLCJhZG1pbiIsImdvb2dsZV9jcmVkZW50aWFscyIsImdvb2dsZV9saW5rIiwiZ29vZ2xlX3NlcnZpY2VfYWNjb3VudCIsImZlbmNlIiwib3BlbmlkIiwiZ2E0Z2hfcGFzc3BvcnRfdjEiLCJkYXRhIl0sImNvbnRleHQiOnsidXNlciI6eyJuYW1lIjoiYTAwNDU2NjFAd2l0cy5hYy56YSIsImlzX2FkbWluIjpmYWxzZSwiZ29vZ2xlIjp7InByb3h5X2dyb3VwIjpudWxsfX19LCJhenAiOiIiLCJzdWIiOiIxIn0.Mm8jri0sq8RUB9b2NlQ98ZXVhFTklHAzvtEJaD6cU8s9p0pNvyjs2fhHFNoPwFEbzZrrpgRxy7Vmv7ob4IAipk908SHsZxaUCzL4VPJOWHkL2dxo-bTr4Lv4UIc9F3EhyfjUZ_ZG6jCXEmqQtzSKDn1giNW0XQxwbitpc3ARL8aathBUjZ_k-ILnSBn1Wi7pjyZ1f6-tI4i1u4PA9zyjDa2md8UCKo6UDyVlZGk5_lW6865xj40_KAS9KLBcLNCHMrCeasEfiU1g_ArARaus9P-pIpscRZgqjwvkYW7ExmmCDrc7_civGj9Ak4bPn6QPClpxnKXaF0tERXpi64hS_beF3KMYJn8PYIyu0no187D_O0z9fVjc8vJEZXLNN0vvwnomSqtAeN1adXrnYNyUwIaY9PSaXdBFeB_7Cax_wCMdFXDY14UDAgimWxg1ls7lzm8K06-tM2YabUhrZELV0pPRNSXdAOacneYM2wZhKlrD9uZu4BUizq7nVy1GuVRZFLmT341vBHh0HZDndpIBVeuYiwRSPW5m4my_PlgDVTprFEUZzR9vo65kgNdz9cJsyzAvnX4hr5hv36BZh7pkp-7dUMHC6H-Kn5w_NVm5wrCFMj62-vTx0JcEU7G2hCZXRWDIG-HWyO85FiAfx16kDMg8wEVHP96clhcRMqhyaN8"
+            }
+            response = requests.post(
+                url,
+                data=data,
+                headers=headers
+            )
+            
+            print(response)
+            # response = requests.put("{self.}/index/index/blank/20ebd953-72ee-43c7-88b1-b5ce154cb9b5", data=payload, headers=headers)
+        
+    def update_blank_index(self, minio_object):
+        url = f"{self.gen3_commons_url}/index/index/blank/{minio_object["guid"]}"
+        data = {
+        "size": minio_object["size"],
+        "hashes": {
+            "md5": minio_object["md5"],
+        },
+        "urls": minio_object["urls"],
+        "authz": minio_object["acl"]
+        }
+        headers = {
+            "accept: application/json"
+            "Content-Type: application/json"
+            # "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlbmNlX2tleV9rZXkiLCJ0eXAiOiJKV1QifQ.eyJwdXIiOiJhY2Nlc3MiLCJpc3MiOiJodHRwczovL2Nsb3VkMDguY29yZS53aXRzLmFjLnphL3VzZXIiLCJhdWQiOlsiaHR0cHM6Ly9jbG91ZDA4LmNvcmUud2l0cy5hYy56YS91c2VyIiwidXNlciIsImFkbWluIiwiZ29vZ2xlX2NyZWRlbnRpYWxzIiwiZ29vZ2xlX2xpbmsiLCJnb29nbGVfc2VydmljZV9hY2NvdW50IiwiZmVuY2UiLCJvcGVuaWQiLCJnYTRnaF9wYXNzcG9ydF92MSIsImRhdGEiXSwiaWF0IjoxNzE5MzIxMDc0LCJleHAiOjE3MTkzMjQ2NzQsImp0aSI6ImUwYWJiYzlhLWZmNjYtNDc0ZS1hYjNmLWQ3YmM2Y2JjODFkZCIsInNjb3BlIjpbInVzZXIiLCJhZG1pbiIsImdvb2dsZV9jcmVkZW50aWFscyIsImdvb2dsZV9saW5rIiwiZ29vZ2xlX3NlcnZpY2VfYWNjb3VudCIsImZlbmNlIiwib3BlbmlkIiwiZ2E0Z2hfcGFzc3BvcnRfdjEiLCJkYXRhIl0sImNvbnRleHQiOnsidXNlciI6eyJuYW1lIjoiYTAwNDU2NjFAd2l0cy5hYy56YSIsImlzX2FkbWluIjpmYWxzZSwiZ29vZ2xlIjp7InByb3h5X2dyb3VwIjpudWxsfX19LCJhenAiOiIiLCJzdWIiOiIxIn0.Mm8jri0sq8RUB9b2NlQ98ZXVhFTklHAzvtEJaD6cU8s9p0pNvyjs2fhHFNoPwFEbzZrrpgRxy7Vmv7ob4IAipk908SHsZxaUCzL4VPJOWHkL2dxo-bTr4Lv4UIc9F3EhyfjUZ_ZG6jCXEmqQtzSKDn1giNW0XQxwbitpc3ARL8aathBUjZ_k-ILnSBn1Wi7pjyZ1f6-tI4i1u4PA9zyjDa2md8UCKo6UDyVlZGk5_lW6865xj40_KAS9KLBcLNCHMrCeasEfiU1g_ArARaus9P-pIpscRZgqjwvkYW7ExmmCDrc7_civGj9Ak4bPn6QPClpxnKXaF0tERXpi64hS_beF3KMYJn8PYIyu0no187D_O0z9fVjc8vJEZXLNN0vvwnomSqtAeN1adXrnYNyUwIaY9PSaXdBFeB_7Cax_wCMdFXDY14UDAgimWxg1ls7lzm8K06-tM2YabUhrZELV0pPRNSXdAOacneYM2wZhKlrD9uZu4BUizq7nVy1GuVRZFLmT341vBHh0HZDndpIBVeuYiwRSPW5m4my_PlgDVTprFEUZzR9vo65kgNdz9cJsyzAvnX4hr5hv36BZh7pkp-7dUMHC6H-Kn5w_NVm5wrCFMj62-vTx0JcEU7G2hCZXRWDIG-HWyO85FiAfx16kDMg8wEVHP96clhcRMqhyaN8"
+        }
+        response = requests.put(
+            url,
+            data=data,
+            headers=headers
+        )
+        
+        print(response)
+        # response = requests.put("{self.}/index/index/blank/20ebd953-72ee-43c7-88b1-b5ce154cb9b5", data=payload, headers=headers)
+
         
     def update_blank_record_for_minio_object(self, minio_object):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
@@ -281,5 +347,17 @@ if __name__ == '__main__':
     # print(gen3_minio_client.create_blank_record_for_minio_object(
     #     {'guid': 'aaff78d3-7440-4f23-849d-c0cdac1523ae', 'did': 'f32d3a0c-da4c-41da-b411-078f879e975e', 'file_name': 'hogwarts_express.jpg', 'md5': '7f5ebf1b42b7f0389ff02bf4106d41a7', 'size': 238202, 'acl': '[*]', 'urls': ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg'], 'uploader': 'a0045661@wits.ac.za'}
     # ))
-    # gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
-    gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "20-Industrial-Rev.pdf", "data/uploads/20-Industrial-Rev.pdf", "data/manifest/output_manifest_file.tsv")
+    # gen3_minio_client.create_blank_record_for_minio_object("Myth_of_Sisyphus.pdf")
+    # # gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
+    # # gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "Essential_Microbiology.pdf", "data/uploads/Essential_Microbiology.pdf", "data/manifest/output_manifest_file.tsv")
+
+    # minio_object = {
+    #     "guid": "5da13668-ceb2-4865-b019-ccb9eecda165",
+    #     "file_name": "Essential_Microbiology.pdf",
+    #     "md5": "62cd91d8da7f9e8343251a73d53fe419-2",
+    #     "size": 9859207,
+    #     "acl": "[*]",
+    #     "urls": ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/ce72c4e0-3083-44e3-ba1b-cee80775fa98/Essential_Microbiology.pdf'],
+    # }
+    # gen3_minio_client.update_blank_index(minio_object)
+    gen3_minio_client.get_gen3_commons_access_token()
