@@ -127,7 +127,7 @@ class Gen3MinioClient:
             response_headers={"response-content-type": "application/json"},
         )
         return url
-    
+        
     def calculate_size_of_file(self, file_path: str):
         data = open(file_path, "rb").read()
         file_size = sys.getsizeof(data)
@@ -139,6 +139,35 @@ class Gen3MinioClient:
         md5sum = hashlib.md5(data).hexdigest()
         print(md5sum)
         return md5sum
+    
+    def upload_file_to_minio_bucket(self, prefix: str, object_name: str, file_path: str):
+        # Generate prefix and GUID
+        did = str(uuid4())
+        directory_name_in_bucket = prefix + "/" + did
+        minio_object = {
+            "guid": str(uuid4()),
+            "did": did,
+            "file_name": object_name,
+            "md5": str(self.generate_md5_for_file(file_path)).strip('"'),
+            "size": self.calculate_size_of_file(file_path),
+            "acl": "[*]",
+            "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{directory_name_in_bucket}/{object_name}"],
+            "uploader": self.gen3_username
+        }
+   
+        path = os.path.join(directory_name_in_bucket, object_name)
+        print(path)
+        
+        # Upload data
+        result = self.client.fput_object(
+            self.minio_bucket_name, path, file_path,
+        )
+        # print(minio_object)
+        print(
+            "Created {0} object; etag: {1}, version-id: {2}".format(
+                result.object_name, result.etag, result.version_id,
+            ),
+        )
     
     def load_minio_manifest_file(self, manifest_file: str) -> dict:
         with open(manifest_file, "r") as f:
@@ -251,7 +280,8 @@ class Gen3MinioClient:
         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    print(gen3_minio_client.create_blank_record_for_minio_object(
-        {'guid': 'aaff78d3-7440-4f23-849d-c0cdac1523ae', 'did': 'f32d3a0c-da4c-41da-b411-078f879e975e', 'file_name': 'hogwarts_express.jpg', 'md5': '7f5ebf1b42b7f0389ff02bf4106d41a7', 'size': 238202, 'acl': '[*]', 'urls': ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg'], 'uploader': 'a0045661@wits.ac.za'}
-    ))
+    # print(gen3_minio_client.create_blank_record_for_minio_object(
+    #     {'guid': 'aaff78d3-7440-4f23-849d-c0cdac1523ae', 'did': 'f32d3a0c-da4c-41da-b411-078f879e975e', 'file_name': 'hogwarts_express.jpg', 'md5': '7f5ebf1b42b7f0389ff02bf4106d41a7', 'size': 238202, 'acl': '[*]', 'urls': ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg'], 'uploader': 'a0045661@wits.ac.za'}
+    # ))
     # gen3_minio_client.create_indexd_manifest("data/manifest/output_manifest_file.tsv")
+    gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "Essential_Microbiology.pdf", "data/uploads/Essential_Microbiology.pdf")
