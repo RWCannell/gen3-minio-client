@@ -241,27 +241,12 @@ class Gen3MinioClient:
         )
 
         print(indexd_manifest)
-        
-    def submit_sheepdog_record(self, program, project, sheepdog_record):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        gen3_submission = Gen3Submission(endpoint=self.gen3_commons_url, auth_provider=auth)
-        return gen3_submission.submit_record(program, project, sheepdog_record)
     
     def get_all_records(self):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
         gen3_index = Gen3Index(auth)
         return gen3_index.get_all_records()
-    
-    def delete_record_by_guid(self, guid: str):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        gen3_index = Gen3Index(auth)
-        return gen3_index.delete_record(guid)
-        
-    def create_blank_record_for_minio_object(self, file_name: str):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        index = Gen3Index(auth)
-        index.create_blank(uploader=self.gen3_username, file_name=file_name)
-        
+           
     def json_dumps(self, data):
         return json.dumps({k: v for (k, v) in data.items() if v is not None})
         
@@ -324,55 +309,34 @@ class Gen3MinioClient:
         )
         
         print(response)
-
-        
-    def update_blank_record_for_minio_object(self, minio_object):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        index = Gen3Index(auth)
-        index.update_blank(
-            guid=minio_object["guid"], 
-            rev="1", 
-            hashes={'md5': minio_object["md5"]}, 
-            size=minio_object["size"], 
-            urls=minio_object["urls"], 
-            authz=None
-        )
-        
-    def create_index_for_minio_object(self):
-        minio_objects = self.get_minio_objects()
-        for minio_object in minio_objects:
-            print("Creating blank record for object '" + minio_object["file_name"] + "'")
-            self.create_blank_record_for_minio_object(minio_object)
-            
-            print("Updating record for object '" + minio_object["file_name"] + "'")
-            self.update_blank_record_for_minio_object(minio_object)
-        
-    
-    def update_existing_record(self, guid: str):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        gen3_index = Gen3Index(auth)
-        gen3_index.update_record(guid)
     
     def get_gen3_presigned_url(self, guid):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
         gen3_file = Gen3File(endpoint=self.gen3_commons_url, auth_provider=auth)
         gen3_presigned_url = gen3_file.get_presigned_url(guid)
         return gen3_presigned_url
-    
-    def test_url(self, url):
-        x = requests.get(url, verify = False)
-        print(x)
         
-    def upload_file_to_guid(self, guid, file_name):
+    def delete_record_by_guid(self, guid, rev):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
-        gen3_file = Gen3File(endpoint=self.gen3_commons_url, auth_provider=auth)
-        upload_file_response = gen3_file.upload_file_to_guid(
-            guid=guid,
-            file_name=file_name,
-            protocol="s3",
-            bucket=self.minio_bucket_name,
-        )
-        return upload_file_response
+        url = f"{self.gen3_commons_url}/index/index/{guid}"
+        params = {"rev": rev}
+        headers = {
+            "Content-Type": "application/json",
+        }
+        try:
+            print(f"Deleting file with GUID '{guid}' and rev '{rev}'...")
+            response = requests.delete(
+                url,
+                params=params,
+                auth=auth,
+                headers=headers,
+                verify=False,
+            )
+        except:
+            print(f"Failed to delete file with GUID '{guid}'")
+        
+        print(response)
+        
         
     def upload_file_and_update_record(self, file_path: str, old_manifest_file):
         print("Extracting file name from file path...")
@@ -427,6 +391,6 @@ class Gen3MinioClient:
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
 
-    upload_response = gen3_minio_client.upload_file_and_update_record("data/uploads/my_book.pdf", "data/manifest/output_manifest_file.tsv")
-    print(upload_response)
+    gen3_minio_client.delete_record_by_guid("PREFIX/711e7554-1daa-4f0d-a7fd-4e8bb5c49ed2", "8ce36b38")
+
     
