@@ -176,8 +176,14 @@ class Gen3MinioClient:
 
     def update_minio_manifest_file(self, old_manifest_file: str):
         minio_objects = self.get_minio_objects()
+        if len(minio_objects) == 0:
+            return "There are no objects in the MinIO bucket."
+        
         updated_minio_objects = []
         existing_minio_objects = self.load_minio_manifest_file(old_manifest_file)
+        if len(existing_minio_objects) == 0:
+            return "There are no entries in the manifest file."
+        
         existing_minio_objects_md5sum_values = [object["md5"] for object in existing_minio_objects]
         for obj in minio_objects:
             if str(obj["md5"]) in existing_minio_objects_md5sum_values:
@@ -194,6 +200,7 @@ class Gen3MinioClient:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
             for minio_object in updated_minio_objects:
                 writer.writerow(minio_object)
+        return "Updated manifest file."
                 
     def upload_file_to_minio_bucket(self, prefix: str, object_name: str, file_path: str, old_manifest_file: str):
         # Generate prefix and GUID
@@ -357,7 +364,7 @@ class Gen3MinioClient:
                 print("Uploading file to MinIO bucket...")
                 result = self.client.fput_object(
                     bucket_name=self.minio_bucket_name, 
-                    object_name=file_name, 
+                    object_name=path_in_minio_bucket, 
                     file_path=file_path,
                 )
                 
@@ -390,7 +397,11 @@ class Gen3MinioClient:
                         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
+    gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
+    # gen3_minio_client.upload_file_and_update_record("data/uploads/Essential_Microbiology.pdf", "data/manifest/output_manifest_file.tsv")
 
-    gen3_minio_client.delete_record_by_guid("PREFIX/711e7554-1daa-4f0d-a7fd-4e8bb5c49ed2", "8ce36b38")
+
+
+    # gen3_minio_client.upload_file_and_update_record("data/uploads/20-Industrial-Rev.pdf", "data/manifest/output_manifest_file.tsv")
 
     
