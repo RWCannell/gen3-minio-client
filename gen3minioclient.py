@@ -6,6 +6,7 @@ import sys
 import hashlib
 import json
 import re
+from pathlib import Path
 
 from csv import  DictReader, DictWriter
 from datetime import timedelta
@@ -83,7 +84,7 @@ class Gen3MinioClient:
                 "file_name": object_name,
                 "md5": str(obj.etag).strip('"'),
                 "size": obj.size,
-                "acl": "[*]",
+                "acl": ["*"],
                 "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
             }
             minio_objects.append(minio_object)
@@ -104,7 +105,7 @@ class Gen3MinioClient:
                 "file_name": object_name,
                 "md5": str(obj.etag).strip('"'),
                 "size": obj.size,
-                "acl": "[*]",
+                "acl": ["*"],
                 "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
             }
             minio_objects.append(minio_object)
@@ -186,7 +187,7 @@ class Gen3MinioClient:
                 "file_name": obj["file_name"],
                 "md5": obj["md5"],
                 "size": obj["size"],
-                "acl": "[*]",
+                "acl": ["*"],
                 "urls": obj["urls"],
             })
         with open(old_manifest_file, "a") as f:
@@ -218,7 +219,7 @@ class Gen3MinioClient:
             "file_name": object_name,
             "md5": str(result.etag,).strip('"'),
             "size": size_of_file,
-            "acl": "[*]",
+            "acl": ["*"],
             "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{directory_name_in_bucket}/{object_name}"],
         }
         print(f"{minio_object} has been uploaded")
@@ -269,7 +270,6 @@ class Gen3MinioClient:
         json = {"uploader": self.gen3_username, "file_name": file_name}
         data = self.json_dumps(json)
         access_token = self.get_gen3_commons_access_token()
-        print(f"Access token: {access_token}")
         headers = {
             "content-type": "application/json",
             "Authorization": f"Bearer {access_token}"
@@ -281,27 +281,44 @@ class Gen3MinioClient:
             verify=False,
         )
         
-        print(response.text)
+        # The response.text has the following structure:
+        # {
+        #     "baseid": "79822e9d-ddd7-48dc-a0d1-d18f4fa9d77e",
+        #     "did": "PREFIX/2e9514a1-a3aa-4520-8011-806b74da2e95",
+        #     "rev": "c8056f0d"
+        # }
         
-    def update_blank_index(self, minio_object):
-        url = f"{self.gen3_commons_url}/index/index/blank/{minio_object["guid"]}"
-        json = {
-        "size": minio_object["size"],
-        "hashes": {
-            "md5": minio_object["md5"],
-        },
-        "urls": minio_object["urls"],
-        "authz": minio_object["acl"]
-        }
-        data = self.json_dumps(json)
+        return response
+        
+    def update_blank_index(self, did, rev, minio_object):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        url = f"{self.gen3_commons_url}/index/index/blank/{did}"
+        
         access_token = self.get_gen3_commons_access_token()
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}"
         }
+        params = {"rev": rev}
+        json = {
+            "hashes": {
+                "md5": minio_object["md5"]
+            },
+            "size": minio_object["size"]
+        }
+        # if minio_object["urls"]:
+        #     json["urls"] = minio_object["urls"]
+        # if minio_object["acl"]:
+        #     json["authz"] = minio_object["acl"]
+        # if minio_object["authz"]:
+        #     json["authz"] = minio_object["authz"]
+        data = self.json_dumps(json)
+
         response = requests.put(
             url,
             data=data,
+            params=params,
+            # auth=auth,
             headers=headers,
             verify=False,
         )
@@ -346,24 +363,70 @@ class Gen3MinioClient:
         x = requests.get(url, verify = False)
         print(x)
         
+    def upload_file_to_guid(self, guid, file_name):
+        auth = Gen3Auth(refresh_file=self.gen3_credentials)
+        gen3_file = Gen3File(endpoint=self.gen3_commons_url, auth_provider=auth)
+        upload_file_response = gen3_file.upload_file_to_guid(
+            guid=guid,
+            file_name=file_name,
+            protocol="s3",
+            bucket=self.minio_bucket_name,
+        )
+        return upload_file_response
+        
+    def upload_file_and_update_record(self, file_path: str, old_manifest_file):
+        print("Extracting file name from file path...")
+        upload_path = Path(file_path)
+        file_name = upload_path.name
+        size_of_file = self.calculate_size_of_file(file_path)
+        print(f"Name of file to be uploaded: '{file_name}'.")
+        
+        try:
+            print(f"Creating blank record for '{file_name}'...")
+            blank_index_response = self.create_blank_index(file_name)
+            blank_index_json_response = blank_index_response.json()
+            did = str(blank_index_json_response["did"])
+            rev = str(blank_index_json_response["rev"])
+            path_in_minio_bucket = os.path.join(did, file_name)
+            
+            try:
+                print("Uploading file to MinIO bucket...")
+                result = self.client.fput_object(
+                    bucket_name=self.minio_bucket_name, 
+                    object_name=file_name, 
+                    file_path=file_path,
+                )
+                
+                minio_object = {
+                    "guid": str(uuid4()),
+                    "file_name": file_name,
+                    "md5": str(result.etag,).strip('"'),
+                    "size": size_of_file,
+                    "acl": ["*"],
+                    "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{path_in_minio_bucket}"],
+                }
+                print(minio_object)
+                print(f"Object '{minio_object["file_name"]}' has been uploaded")
+            except:
+                print(f"Failed to upload file '{minio_object["file_name"]}'")
+            
+            print("Updating manifest with metadata about newly uploaded minio object...")
+            self.update_minio_manifest_file(old_manifest_file)
+            
+            try:
+                if did and rev:
+                    print(f"Updating indexd database record for uploaded file with did '{did}' and rev '{rev}'...")
+                    self.update_blank_index(did, rev, minio_object)
+            except:
+                print(f"Failed to update blank index with GUID of '{minio_object["file_name"]}'.")
+        except:
+            print(f"Failed to create blank index for file '{file_name}'.")
+               
+        return f"File '{file_name}' uploaded successfully and indexd database records updated."
+                        
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    # print(gen3_minio_client.create_blank_record_for_minio_object(
-    #     {'guid': 'aaff78d3-7440-4f23-849d-c0cdac1523ae', 'did': 'f32d3a0c-da4c-41da-b411-078f879e975e', 'file_name': 'hogwarts_express.jpg', 'md5': '7f5ebf1b42b7f0389ff02bf4106d41a7', 'size': 238202, 'acl': '[*]', 'urls': ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/hogwarts_express.jpg'], 'uploader': 'a0045661@wits.ac.za'}
-    # ))
-    # gen3_minio_client.create_blank_record_for_minio_object("Myth_of_Sisyphus.pdf")
-    # # gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
-    # # gen3_minio_client.upload_file_to_minio_bucket("PREFIX", "Essential_Microbiology.pdf", "data/uploads/Essential_Microbiology.pdf", "data/manifest/output_manifest_file.tsv")
 
-    minio_object = {
-        "guid": "5da13668-ceb2-4865-b019-ccb9eecda165",
-        "file_name": "Essential_Microbiology.pdf",
-        "md5": "62cd91d8da7f9e8343251a73d53fe419-2",
-        "size": 9859207,
-        "acl": "[*]",
-        "urls": ['https://cloud05.core.wits.ac.za/gen3-minio-bucket/PREFIX/ce72c4e0-3083-44e3-ba1b-cee80775fa98/Essential_Microbiology.pdf'],
-    }
-    # gen3_minio_client.update_blank_index(minio_object)
-    # gen3_minio_client.get_gen3_commons_access_token()
-    gen3_minio_client.create_blank_index("20-Industrial-Rev.pdf")
+    upload_response = gen3_minio_client.upload_file_and_update_record("data/uploads/my_book.pdf", "data/manifest/output_manifest_file.tsv")
+    print(upload_response)
     
