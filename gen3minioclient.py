@@ -184,12 +184,14 @@ class Gen3MinioClient:
     def update_minio_manifest_file(self, old_manifest_file: str):
         minio_objects = self.get_minio_objects()
         if len(minio_objects) == 0:
+            print("There are no objects in the MinIO bucket.")
             return "There are no objects in the MinIO bucket."
         
         updated_minio_objects = []
         existing_minio_objects = self.load_minio_manifest_file(old_manifest_file)
         if len(existing_minio_objects) == 0:
-            return "There are no entries in the manifest file."
+            print("There are no entries in the manifest file. Creating a new manifest file...")
+            return self.create_minio_manifest_file(old_manifest_file)
         
         existing_minio_objects_md5sum_values = [object["md5"] for object in existing_minio_objects]
         for obj in minio_objects:
@@ -207,6 +209,7 @@ class Gen3MinioClient:
             writer = DictWriter(f, fieldnames=self.MANIFEST_FIELDS, delimiter="\t")
             for minio_object in updated_minio_objects:
                 writer.writerow(minio_object)
+        print("Updated manifest file.")
         return "Updated manifest file."
         
     def create_indexd_manifest(self, manifest_file: str):
