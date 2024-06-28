@@ -135,6 +135,13 @@ class Gen3MinioClient:
             print(object_name)
         return object_names
     
+    def check_if_object_is_in_minio_bucket(self, object_name: str):
+        object_exists = False
+        minio_object_names = self.get_minio_object_names()
+        if object_name in minio_object_names:
+            object_exists = True
+        return object_exists
+    
     # Get presigned URL string to upload file in
     # bucket with response-content-type as application/json
     # and one day expiry.
@@ -201,38 +208,6 @@ class Gen3MinioClient:
             for minio_object in updated_minio_objects:
                 writer.writerow(minio_object)
         return "Updated manifest file."
-                
-    def upload_file_to_minio_bucket(self, prefix: str, object_name: str, file_path: str, old_manifest_file: str):
-        # Generate prefix and GUID
-        size_of_file = self.calculate_size_of_file(file_path)
-        guid = str(uuid4())
-        directory_name_in_bucket = prefix + "/" + guid
-   
-        path = os.path.join(directory_name_in_bucket, object_name)
-        
-        # Upload data
-        result = self.client.fput_object(
-            self.minio_bucket_name, path, file_path,
-        )
-        
-        print(
-            "Created {0} object; etag: {1}, version-id: {2}".format(
-                result.object_name, result.etag, result.version_id,
-            ),
-        )
-        
-        minio_object = {
-            "guid": guid,
-            "file_name": object_name,
-            "md5": str(result.etag,).strip('"'),
-            "size": size_of_file,
-            "acl": ["*"],
-            "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{directory_name_in_bucket}/{object_name}"],
-        }
-        print(f"{minio_object} has been uploaded")
-        
-        print("Updating manifest with metadata about newly uploaded minio object...")
-        self.update_minio_manifest_file(old_manifest_file)
         
     def create_indexd_manifest(self, manifest_file: str):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
@@ -352,6 +327,11 @@ class Gen3MinioClient:
         size_of_file = self.calculate_size_of_file(file_path)
         print(f"Name of file to be uploaded: '{file_name}'.")
         
+        print("Checking if file already exists in MinIO bucket...")
+        file_exists = self.check_if_object_is_in_minio_bucket(file_name)
+        if file_exists:
+            print(f"File '{file_name}' already exists in MinIO bucket. Process stopped.")
+            return f"File '{file_name}' already exists in MinIO bucket. Process stopped."
         try:
             print(f"Creating blank record for '{file_name}'...")
             blank_index_response = self.create_blank_index(file_name)
@@ -397,11 +377,6 @@ class Gen3MinioClient:
                         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    gen3_minio_client.create_minio_manifest_file("data/manifest/output_manifest_file.tsv")
-    # gen3_minio_client.upload_file_and_update_record("data/uploads/Essential_Microbiology.pdf", "data/manifest/output_manifest_file.tsv")
-
-
-
-    # gen3_minio_client.upload_file_and_update_record("data/uploads/20-Industrial-Rev.pdf", "data/manifest/output_manifest_file.tsv")
+    gen3_minio_client.upload_file_and_update_record("data/uploads/Albert-Camus-The-Stranger.pdf", "data/manifest/output_manifest_file.tsv")
 
     
