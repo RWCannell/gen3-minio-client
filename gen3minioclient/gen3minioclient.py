@@ -380,6 +380,6 @@ class Gen3MinioClient:
                         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    gen3_minio_client.upload_file_and_update_record("data/uploads/Albert-Camus-The-Stranger.pdf", "data/manifest/output_manifest_file.tsv")
+    gen3_minio_client.create_minio_manifest_file("./output_manifest_file.tsv")
 
     

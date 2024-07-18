@@ -5,3 +5,5 @@ output.log
 data/uploads/
 certs/
 gen3-credentials.json
+gen3minioclient/output.log
+gen3minioclient/output_manifest_file.tsv
