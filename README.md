@@ -38,6 +38,25 @@ NOTE: After installing all the dependencies, a `requirements.txt` file can be ge
 pip freeze > requirements.txt
 ```
 
+### Running as a CLI Tool   
+NOTE: this is still a work in progress.   
+
+In order to initialise the client, a JSON input needs to be provided. This JSON should contain the following fields:
+```json
+{
+    "api_key": "gen3ApiKey", // optional
+    "key_id": "gen3ApiKeyId", // optional
+    "minio_bucket_name": "gen3-minio-bucket-name",
+    "minio_endpoint": "gen3-minio-endpoint",
+    "minio_access_key": "minioAccessKey",
+    "minio_secret_key": "minioSecretKey",
+    "gen3_credentials_path": "gen3-credentials.json",
+    "gen3_commons_url": "https://gen3.com",
+    "gen3_username": "name@example.com",
+    "manifest_file_location": "data/manifest/output_manifest_file.tsv" // optional
+}
+```
+
 ### Attributes of MinIO Objects
 The attributes of an object from a MinIO bucket looks as follows when calling the `.__dir__()` method:
 ```python

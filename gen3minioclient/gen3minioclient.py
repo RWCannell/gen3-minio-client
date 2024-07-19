@@ -47,6 +47,41 @@ class Gen3MinioClient:
     def __init__(self):
         print(f"Initialising Gen3MinioClient with bucket {self.minio_bucket_name} and endpoint https://{self.minio_api_endpoint} for uploader {self.gen3_username}...")
         
+    def configure_gen3_minio_client(self, gen3_minio_json_file):
+        # opening JSON file containing credentials
+        f = open(gen3_minio_json_file)
+
+        # returns JSON object as 
+        # a dictionary
+        json_values = json.load(f)
+        
+        if not json_values["minio_bucket_name"] or json_values["minio_bucket_name"] == "":
+            return f"'minio_bucket_name' attribute has not been specified"
+        
+        if not json_values["minio_endpoint"] or json_values["minio_endpoint"] == "":
+            return f"'minio_endpoint' attribute has not been specified"
+        
+        if not json_values["minio_access_key"] or json_values["minio_access_key"] == "":
+            return f"'minio_access_key' attribute has not been specified"
+        
+        if not json_values["minio_secret_key"] or json_values["minio_secret_key"] == "":
+            return f"'minio_secret_key' attribute has not been specified"
+        
+        if not json_values["gen3_commons_url"] or json_values["gen3_commons_url"] == "":
+            return f"'gen3_commons_url' attribute has not been specified"
+        
+        if not json_values["gen3_username"] or json_values["gen3_username"] == "":
+            return f"'gen3_username' attribute has not been specified"
+        
+        if not json_values["minio_bucket_name"] or json_values["minio_bucket_name"] == "":
+            return f"'minio_bucket_name' attribute has not been specified"
+        
+        if not (json_values["gen3_credentials_path"] or json_values["api_key"]) or json_values["gen3_credentials_path"] == "":
+            return f"Either the 'gen3_credentials_path' attribute or the 'api_key' and 'key_id' combination of attributes needs to be specified."
+        
+        return f"Credentials for the 'gen3-minio-client' CLI tool has been successfully initialised."
+        
+        
     def get_gen3_commons_access_token(self):
         url = f"{self.gen3_commons_url}/user/credentials/cdis/access_token"
         
@@ -179,7 +214,8 @@ class Gen3MinioClient:
             writer.writeheader()
             for minio_object in minio_objects:
                 writer.writerow(minio_object)
-        return minio_objects
+        print("Created manifest file and saved it in current working directory.")
+        return "Created manifest file and saved it in current working directory."
 
     def update_minio_manifest_file(self, old_manifest_file: str):
         minio_objects = self.get_minio_objects()
