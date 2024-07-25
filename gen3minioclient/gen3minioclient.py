@@ -415,16 +415,22 @@ class Gen3MinioClient:
         return f"File '{file_name}' uploaded successfully and indexd database records updated."
     
     # download data of an object from MinIO bucket
-    def download_file_from_minio_bucket(self, minio_object_name: str, file_path: str):
+    def download_file_from_minio_bucket(self, minio_object_name: str, prefix: str, guid: str, file_path: str):
+        minio_download_path = f"/{prefix}/{guid}/{minio_object_name}"
         self.client.fget_object(
             bucket_name=self.minio_bucket_name, 
-            object_name=minio_object_name, 
+            object_name=minio_download_path, 
             file_path=file_path
         )
         return f"Downloaded MinIO object {minio_object_name} to {file_path} from bucket {self.minio_bucket_name}."
                         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    gen3_minio_client.create_minio_manifest_file("./output_manifest_file.tsv")
+    gen3_minio_client.download_file_from_minio_bucket(
+        minio_object_name="Albert-Camus-The-Stranger.pdf",
+        prefix="PREFIX", 
+        guid="d21d4089-b640-4c1c-ac6f-7968d934f9cc", 
+        file_path="./minio_downloads/Albert-Camus-The-Stranger.pdf"
+    )
 
     
