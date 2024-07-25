@@ -413,6 +413,15 @@ class Gen3MinioClient:
             print(f"Failed to create blank index for file '{file_name}'.")
                
         return f"File '{file_name}' uploaded successfully and indexd database records updated."
+    
+    # download data of an object from MinIO bucket
+    def download_file_from_minio_bucket(self, minio_object_name: str, file_path: str):
+        self.client.fget_object(
+            bucket_name=self.minio_bucket_name, 
+            object_name=minio_object_name, 
+            file_path=file_path
+        )
+        return f"Downloaded MinIO object {minio_object_name} to {file_path} from bucket {self.minio_bucket_name}."
                         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
