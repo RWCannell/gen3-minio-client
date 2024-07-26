@@ -73,12 +73,24 @@ class Gen3MinioClient:
         if not json_values["gen3_username"] or json_values["gen3_username"] == "":
             return f"'gen3_username' attribute has not been specified"
         
-        if not json_values["minio_bucket_name"] or json_values["minio_bucket_name"] == "":
-            return f"'minio_bucket_name' attribute has not been specified"
-        
         if not (json_values["gen3_credentials_path"] or json_values["api_key"]) or json_values["gen3_credentials_path"] == "":
             return f"Either the 'gen3_credentials_path' attribute or the 'api_key' and 'key_id' combination of attributes needs to be specified."
         
+        self.minio_bucket_name = json_values["minio_bucket_name"]
+        self.minio_api_endpoint = json_values["minio_endpoint"]
+        self.minio_access_key = json_values["minio_access_key"]
+        self.minio_secret_key = json_values["minio_secret_key"]
+        self.gen3_commons_url = json_values["gen3_commons_url"]
+        self.gen3_credentials = json_values["gen3_credentials_path"]
+        self.gen3_username = json_values["gen3_username"]
+        
+        self.client = Minio(
+            endpoint=self.minio_api_endpoint,
+            access_key=self.minio_access_key,
+            secret_key=self.minio_secret_key,
+            cert_check=False,
+        )
+    
         return f"Credentials for the 'gen3-minio-client' CLI tool has been successfully initialised."
         
         
