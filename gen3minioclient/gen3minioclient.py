@@ -24,9 +24,7 @@ logging.basicConfig(filename="output.log", level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 class Gen3MinioClient:
-    MANIFEST = "data/manifest/output_manifest_file.tsv"
-    COMPLETED = "data/manifest/output_manifest_file.tsv"
-    MANIFEST_FIELDS = ['guid', 'file_name', 'md5', 'size', 'acl', 'urls']
+    MANIFEST_FIELDS = ['guid', 'urls', 'authz', 'acl', 'md5', 'file_size', 'file_name']
 
     minio_bucket_name = os.getenv("MINIO_BUCKET_NAME")
     minio_api_endpoint = os.getenv("MINIO_ENDPOINT")
@@ -130,11 +128,13 @@ class Gen3MinioClient:
                 "guid": guid,
                 "file_name": object_name,
                 "md5": str(obj.etag).strip('"'),
-                "size": obj.size,
+                "file_size": obj.size,
                 "acl": ["*"],
+                "authz": ["/programs/gen3Program502/projects/P502"],
                 "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
             }
             minio_objects.append(minio_object)
+        print(minio_objects)
         return minio_objects
 
     def get_minio_objects_by_prefix(self, prefix: str):
@@ -151,8 +151,9 @@ class Gen3MinioClient:
                 "guid": str(uuid4()),
                 "file_name": object_name,
                 "md5": str(obj.etag).strip('"'),
-                "size": obj.size,
+                "file_size": obj.size,
                 "acl": ["*"],
+                "authz": ["/programs/gen3Program502/projects/P502"],
                 "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{obj.object_name}"],
             }
             minio_objects.append(minio_object)
@@ -249,8 +250,9 @@ class Gen3MinioClient:
                 "guid": obj["guid"],
                 "file_name": obj["file_name"],
                 "md5": obj["md5"],
-                "size": obj["size"],
+                "file_size": obj["file_size"],
                 "acl": ["*"],
+                "authz": ["/programs/gen3Program502/projects/P502"],
                 "urls": obj["urls"],
             })
         with open(old_manifest_file, "a") as f:
@@ -278,7 +280,9 @@ class Gen3MinioClient:
     def get_all_records(self):
         auth = Gen3Auth(refresh_file=self.gen3_credentials)
         gen3_index = Gen3Index(auth)
-        return gen3_index.get_all_records()
+        gen3_index_records = gen3_index.get_all_records()
+        print(gen3_index_records)
+        return gen3_index_records
            
     def json_dumps(self, data):
         return json.dumps({k: v for (k, v) in data.items() if v is not None})
@@ -309,7 +313,6 @@ class Gen3MinioClient:
         return response
         
     def update_blank_index(self, did, rev, minio_object):
-        auth = Gen3Auth(refresh_file=self.gen3_credentials)
         url = f"{self.gen3_commons_url}/index/index/blank/{did}"
         
         access_token = self.get_gen3_commons_access_token()
@@ -322,7 +325,7 @@ class Gen3MinioClient:
             "hashes": {
                 "md5": minio_object["md5"]
             },
-            "size": minio_object["size"]
+            "size": minio_object["file_size"]
         }
         # if minio_object["urls"]:
         #     json["urls"] = minio_object["urls"]
@@ -403,8 +406,9 @@ class Gen3MinioClient:
                     "guid": str(uuid4()),
                     "file_name": file_name,
                     "md5": str(result.etag,).strip('"'),
-                    "size": size_of_file,
+                    "file_size": size_of_file,
                     "acl": ["*"],
+                    "authz": ["/programs/gen3Program502/projects/P502"],
                     "urls": [f"https://{self.minio_api_endpoint}/{self.minio_bucket_name}/{path_in_minio_bucket}"],
                 }
                 print(minio_object)
@@ -438,11 +442,45 @@ class Gen3MinioClient:
                         
 if __name__ == '__main__':
     gen3_minio_client = Gen3MinioClient()
-    gen3_minio_client.download_file_from_minio_bucket(
-        minio_object_name="Albert-Camus-The-Stranger.pdf",
-        prefix="PREFIX", 
-        guid="d21d4089-b640-4c1c-ac6f-7968d934f9cc", 
-        file_path="./minio_downloads/Albert-Camus-The-Stranger.pdf"
+    # gen3_minio_client.download_file_from_minio_bucket(
+    #     minio_object_name="Essential_Microbiology.pdf",
+    #     prefix="PREFIX", 
+    #     guid="3591ce9d-8573-4a3d-95c6-f2a862cb4b0c", 
+    #     file_path="./minio_downloads"
+    # )
+    gen3_minio_client.upload_file_and_update_record(
+        file_path="data/uploads/NZ_GG704939.fa",
+        old_manifest_file="./output_manifest_file.tsv"
     )
-
+    # gen3_minio_client.create_blank_index(
+    #     file_name="Myth_of_Sisyphus.pdf"
+    # )
+    # gen3_minio_client.configure_gen3_minio_client(
+    #     gen3_minio_json_file="gen3-minio-credentials.json"
+    # )
+    # gen3_minio_client.get_all_records()
+    # gen3_minio_client.get_minio_objects()
+    # gen3_minio_client.delete_record_by_guid(
+    #     guid="fc6e3d8d-1193-467a-9cc1-fe5edcb5ffb5",
+    #     rev="742f575c"
+    # )
+    # gen3_minio_client.create_minio_manifest_file(
+    #     output_manifest_file="output_manifest_file.tsv"
+    # )
+    # gen3_minio_client.update_blank_index(
+    #     did="PREFIX/c4f04e94-3b49-4164-baee-3789a4cbc91d",
+    #     rev="4f33efb2",
+    #     minio_object={
+    #         'guid': '2b660271-53e7-4967-b2a7-cb981ed3ea60', 
+    #         'file_name': 'Myth_of_Sisyphus.pdf', 
+    #         'md5': '9e98258e6be05cd50ddc5c5065d1c316', 
+    #         'file_size': 375922, 
+    #         'acl': ['*'], 
+    #         'authz': ['/programs/gen3Program502/projects/P502'], 
+    #         'urls': ['https://cloud05.core.wits.ac.za:9000/gen3-minio-bucket/PREFIX/34889f63-2380-4962-992b-a9bba65e43de/Myth_of_Sisyphus.pdf']
+    #         }
+    # )
+    # gen3_minio_client.update_minio_manifest_file(
+    #     old_manifest_file="./output_manifest_file.tsv"
+    # )
     
